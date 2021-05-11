@@ -965,6 +965,11 @@ public class TopicServiceImpl implements TopicService {
             //集群不存在
             return Result.buildFrom(ResultStatus.CLUSTER_NOT_EXIST);
         }
+        TopicDO topic = topicManagerService.getByTopicName(physicalClusterId, dto.getTopicName());
+        if (ValidateUtils.isNull(topic)) {
+            //topic不存在
+            return Result.buildFrom(ResultStatus.TOPIC_NOT_EXIST);
+        }
         //构建authorityDo
         AuthorityDO authorityDO = new AuthorityDO();
         authorityDO.setClusterId(physicalClusterId);
