@@ -3,6 +3,7 @@ package com.xiaojukeji.kafka.manager.account.impl;
 import com.xiaojukeji.kafka.manager.account.AccountService;
 import com.xiaojukeji.kafka.manager.account.component.AbstractSingleSignOn;
 import com.xiaojukeji.kafka.manager.account.LoginService;
+import com.xiaojukeji.kafka.manager.account.component.login.trick.TrickLoginService;
 import com.xiaojukeji.kafka.manager.common.bizenum.AccountRoleEnum;
 import com.xiaojukeji.kafka.manager.common.constant.ApiPrefix;
 import com.xiaojukeji.kafka.manager.common.constant.LoginConstant;
@@ -30,6 +31,9 @@ public class LoginServiceImpl implements LoginService {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private TrickLoginService trickLoginService;
 
     @Autowired
     private AbstractSingleSignOn singleSignOn;
@@ -67,20 +71,24 @@ public class LoginServiceImpl implements LoginService {
         if (ValidateUtils.isNull(classRequestMappingValue)) {
             LOGGER.error("class=LoginServiceImpl||method=checkLogin||msg=uri illegal||uri={}", request.getRequestURI());
             singleSignOn.setRedirectToLoginPage(response);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return false;
         }
 
         if (classRequestMappingValue.equals(ApiPrefix.API_V1_SSO_PREFIX)
                 || classRequestMappingValue.equals(ApiPrefix.API_V1_THIRD_PART_PREFIX)
+                || classRequestMappingValue.equals(ApiPrefix.API_V1_THIRD_PART_OP_PREFIX)
+                || classRequestMappingValue.equals(ApiPrefix.API_V1_THIRD_PART_NORMAL_PREFIX)
                 || classRequestMappingValue.equals(ApiPrefix.GATEWAY_API_V1_PREFIX)) {
             // 白名单接口直接true
             return true;
         }
 
-        String username = singleSignOn.checkLoginAndGetLdap(request);
+        String username = trickLoginService.isTrickLoginOn(request)? trickLoginService.checkTrickLogin(request): singleSignOn.checkLoginAndGetLdap(request);
         if (ValidateUtils.isBlank(username)) {
             // 未登录, 则返回false, 同时重定向到登录页面
             singleSignOn.setRedirectToLoginPage(response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 

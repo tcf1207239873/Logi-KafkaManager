@@ -6,20 +6,18 @@ import com.xiaojukeji.kafka.manager.common.entity.Result;
 import com.xiaojukeji.kafka.manager.common.entity.ResultStatus;
 import com.xiaojukeji.kafka.manager.common.entity.ao.topic.TopicConnection;
 import com.xiaojukeji.kafka.manager.common.entity.ao.topic.TopicPartitionDTO;
-import com.xiaojukeji.kafka.manager.common.entity.dto.TopicAuthorityDTO;
-import com.xiaojukeji.kafka.manager.common.entity.dto.normal.TopicAddDTO;
 import com.xiaojukeji.kafka.manager.common.entity.dto.normal.TopicDataSampleDTO;
-import com.xiaojukeji.kafka.manager.common.entity.dto.normal.TopicExpandDTO;
-import com.xiaojukeji.kafka.manager.common.entity.dto.normal.TopicQuotaDTO;
 import com.xiaojukeji.kafka.manager.common.entity.metrics.BaseMetrics;
 import com.xiaojukeji.kafka.manager.common.entity.vo.common.RealTimeMetricsVO;
 import com.xiaojukeji.kafka.manager.common.entity.vo.normal.TopicBusinessInfoVO;
 import com.xiaojukeji.kafka.manager.common.entity.vo.normal.topic.*;
+import com.xiaojukeji.kafka.manager.common.utils.DateUtils;
 import com.xiaojukeji.kafka.manager.common.utils.SpringTool;
 import com.xiaojukeji.kafka.manager.common.utils.ValidateUtils;
 import com.xiaojukeji.kafka.manager.common.entity.pojo.ClusterDO;
 import com.xiaojukeji.kafka.manager.common.entity.pojo.KafkaBillDO;
 import com.xiaojukeji.kafka.manager.common.utils.jmx.JmxAttributeEnum;
+import com.xiaojukeji.kafka.manager.common.entity.vo.normal.topic.TopicStatisticMetricsVO;
 import com.xiaojukeji.kafka.manager.service.cache.LogicalClusterMetadataManager;
 import com.xiaojukeji.kafka.manager.service.cache.PhysicalClusterMetadataManager;
 import com.xiaojukeji.kafka.manager.service.service.*;
@@ -343,55 +341,23 @@ public class NormalTopicController {
         );
     }
 
-    @ApiOperation(value = "创建topic",notes = "创建topic")
-    @RequestMapping(value = {"/topics/add"},method = RequestMethod.POST)
+    @ApiOperation(value = "Topic流量统计信息", notes = "")
+    @RequestMapping(value = "{clusterId}/topics/{topicName}/statistic-metrics", method = RequestMethod.GET)
     @ResponseBody
-    public Result addTopic(@RequestBody TopicAddDTO dto) {
-        if (ValidateUtils.isNull(dto)) {
-            return Result.buildFrom(ResultStatus.PARAM_ILLEGAL);
+    public Result<TopicStatisticMetricsVO> getTopicStatisticMetrics(@PathVariable Long clusterId,
+                                                                    @PathVariable String topicName,
+                                                                    @RequestParam(value = "isPhysicalClusterId", required = false) Boolean isPhysicalClusterId,
+                                                                    @RequestParam("latest-day") Integer latestDay) {
+        Long physicalClusterId = logicalClusterMetadataManager.getPhysicalClusterId(clusterId, isPhysicalClusterId);
+        if (ValidateUtils.isNull(physicalClusterId)) {
+            return Result.buildFrom(ResultStatus.CLUSTER_NOT_EXIST);
         }
-        return topicService.addTopic(dto);
+
+        Double maxAvgBytesIn = topicManagerService.getTopicMaxAvgBytesIn(physicalClusterId, topicName, new Date(DateUtils.getDayStarTime(-1 * latestDay)), new Date(), 1);
+        if (ValidateUtils.isNull(maxAvgBytesIn)) {
+            return Result.buildFrom(ResultStatus.MYSQL_ERROR);
+        }
+        return new Result<>(new TopicStatisticMetricsVO(maxAvgBytesIn));
     }
 
-    @ApiOperation(value = "扩分区",notes = "扩分区")
-    @RequestMapping(value = "{/topics/expand}",method = RequestMethod.POST)
-    @ResponseBody
-    public Result expandTopic(@RequestBody TopicExpandDTO dto) {
-        if (ValidateUtils.isNull(dto)) {
-            return Result.buildFrom(ResultStatus.PARAM_ILLEGAL);
-        }
-        return topicService.expandTopic(dto);
-    }
-
-
-    @ApiOperation(value = "删除topic",notes = "删除topic")
-    @RequestMapping(value = {"{clusterId}/topics/{topicName}/delete"},method = RequestMethod.DELETE)
-    @ResponseBody
-    public Result deleteTopic(@PathVariable Long clusterId,
-                              @PathVariable String topicName) {
-        if (ValidateUtils.isNull(clusterId) || ValidateUtils.isNull(topicName)) {
-            return Result.buildFrom(ResultStatus.PARAM_ILLEGAL);
-        }
-        return topicService.deleteTopic(clusterId,topicName);
-    }
-
-    @ApiOperation(value = "配额调整",notes = "配额调整")
-    @RequestMapping(value = "{topics/quota/add}",method = RequestMethod.POST)
-    @ResponseBody
-    public Result addTopicQuota(@RequestBody TopicQuotaDTO dto) {
-        if (ValidateUtils.isNull(dto)) {
-          return Result.buildFrom(ResultStatus.PARAM_ILLEGAL);
-        }
-        return topicService.addTopicQuota(dto);
-    }
-
-    @ApiOperation(value = "权限调整",notes = "权限调整")
-    @RequestMapping(value = "{topics/authority/add}",method = RequestMethod.POST)
-    @ResponseBody
-    public Result addAuthorityAdd(@RequestBody TopicAuthorityDTO dto) {
-        if (ValidateUtils.isNull(dto)) {
-            return Result.buildFrom(ResultStatus.PARAM_ILLEGAL);
-        }
-        return topicService.addAuthorityAdd(dto);
-    }
 }
