@@ -7,6 +7,7 @@ import com.xiaojukeji.kafka.manager.common.entity.ResultStatus;
 import com.xiaojukeji.kafka.manager.common.entity.ao.reassign.ReassignStatus;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignExecDTO;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignExecSubDTO;
+import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignCmbTaskDTO;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignTopicDTO;
 import com.xiaojukeji.kafka.manager.common.entity.pojo.ReassignTaskDO;
 import kafka.common.TopicAndPartition;
@@ -37,5 +38,6 @@ public interface ReassignService {
 
     Map<TopicAndPartition, TaskStatusReassignEnum> verifyAssignment(ZkUtils zkUtils, String reassignmentJson);
 
+    List<ReassignTaskDO> getReassignTaskListByCondition(ReassignCmbTaskDTO dto);
 
 }

@@ -1,5 +1,7 @@
 package com.xiaojukeji.kafka.manager.service.service.impl;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.xiaojukeji.kafka.manager.common.bizenum.TaskStatusReassignEnum;
 import com.xiaojukeji.kafka.manager.common.bizenum.TopicReassignActionEnum;
 import com.xiaojukeji.kafka.manager.common.constant.Constant;
@@ -8,8 +10,10 @@ import com.xiaojukeji.kafka.manager.common.entity.ResultStatus;
 import com.xiaojukeji.kafka.manager.common.entity.ao.reassign.ReassignStatus;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignExecDTO;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignExecSubDTO;
+import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignCmbTaskDTO;
 import com.xiaojukeji.kafka.manager.common.entity.dto.op.reassign.ReassignTopicDTO;
 import com.xiaojukeji.kafka.manager.common.utils.ValidateUtils;
+import com.xiaojukeji.kafka.manager.service.cache.LogicalClusterMetadataManager;
 import com.xiaojukeji.kafka.manager.service.utils.KafkaZookeeperUtils;
 import com.xiaojukeji.kafka.manager.common.zookeeper.znode.brokers.TopicMetadata;
 import com.xiaojukeji.kafka.manager.dao.ReassignTaskDao;
@@ -334,4 +338,28 @@ public class ReassignServiceImpl implements ReassignService {
         }
         return reassignResult;
     }
+
+    @Autowired
+    LogicalClusterMetadataManager logicalClusterMetadataManager;
+
+    @Override
+    public List<ReassignTaskDO> getReassignTaskListByCondition(ReassignCmbTaskDTO dto) {
+        // 逻辑集群id非空，则获取物理集群id
+        if (!ValidateUtils.isEmptyList(dto.getLogicClusterIds())) {
+            Set<Long> clusters = Sets.newHashSet();
+            dto.getLogicClusterIds().forEach(logicCluster -> {
+                clusters.add(logicalClusterMetadataManager.getPhysicalClusterId(logicCluster));
+            });
+            dto.setLogicClusterIds(new ArrayList<>(clusters));
+        }
+        Map<String,Object> params = Maps.newHashMap();
+        params.put("logicClusterIds",dto.getLogicClusterIds());
+        params.put("taskStatuss",dto.getTaskStatuss());
+        params.put("field",dto.getField());
+        params.put("sort",dto.getSort());
+        params.put("startIndex",(dto.getPageNo() - 1) * dto.getPageSize());
+        params.put("pageSize",dto.getPageSize());
+        return reassignTaskDao.getReassignTaskListByCondition(params);
+    }
+
 }

@@ -4,6 +4,7 @@ import com.xiaojukeji.kafka.manager.common.entity.pojo.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * migrate topic task dao
@@ -58,4 +59,12 @@ public interface ReassignTaskDao {
      * @date 20/6/11
      */
     void batchUpdate(List<ReassignTaskDO> doList);
+
+    /**
+     * 查询迁移任务
+     * @param params 查询迁移任务条件
+     * @return ReassignTaskDO
+     */
+    List<ReassignTaskDO> getReassignTaskListByCondition(Map<String,Object> params);
+
 }
